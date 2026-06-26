@@ -5,7 +5,7 @@ members = ["crates/*"]
 [workspace.package]
 edition = "2021"
 license = "Apache-2.0"
-repository = "https://github.com/rocicorp/orbit"
+repository = "https://github.com/rabbatdev/orbit"
 version = "0.1.0"
 
 [workspace.dependencies]
