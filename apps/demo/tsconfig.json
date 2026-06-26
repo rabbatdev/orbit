@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "paths": {
+      "@orbit/client": ["../../packages/client/src/index.ts"],
+      "@orbit/react": ["../../packages/react/src/index.ts"],
+      "@orbit/server": ["../../packages/server/src/index.ts"],
+      "@orbit/server/pg": ["../../packages/server/src/pg.ts"]
+    },
+    "types": ["node", "react", "react-dom", "vite/client"]
+  },
+  "include": ["src", "vite.config.ts"]
+}

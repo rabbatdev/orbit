@@ -1,0 +1,27 @@
+{
+  "name": "@orbit/server",
+  "version": "0.1.0",
+  "description": "Server-side helpers for Orbit: PushProcessor + QueryProcessor for your push/query endpoints, with a pluggable database adapter (pg built in; Drizzle/etc. implement the same DBConnection).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./pg": "./src/pg.ts"
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types"
+  },
+  "dependencies": {
+    "@orbit/client": "workspace:*"
+  },
+  "peerDependencies": {
+    "pg": "^8"
+  },
+  "peerDependenciesMeta": {
+    "pg": { "optional": true }
+  },
+  "devDependencies": {
+    "pg": "^8",
+    "@types/pg": "^8",
+    "@types/node": "^20"
+  }
+}

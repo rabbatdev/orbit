@@ -1,0 +1,24 @@
+{
+  "name": "@orbit/react",
+  "version": "0.1.0",
+  "description": "React bindings for the Orbit client (useQuery). Mirrors @rocicorp/zero/react.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@orbit/client": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "react": "^19",
+    "@types/react": "^19",
+    "react-test-renderer": "^19"
+  }
+}

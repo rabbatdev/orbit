@@ -1,0 +1,17 @@
+{
+  "name": "@orbit/client",
+  "version": "0.1.0",
+  "description": "Orbit TypeScript client — speaks the Orbit (= Zero) wire protocol. Mirrors Zero's zero-client API. React bindings live in @orbit/react.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5.6"
+  }
+}
