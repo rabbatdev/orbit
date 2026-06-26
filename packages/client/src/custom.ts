@@ -20,7 +20,7 @@
 
 import type { CrudOp, Row } from './protocol.ts';
 import type { PkOf, RowOf, SchemaDef } from './schema.ts';
-import type { Subscribable, TypedQuery } from './query.ts';
+import type { QueryBuilder, Subscribable } from './query.ts';
 
 /** Typed CRUD surface for one table inside a mutator transaction. */
 export type TableCRUD<T extends Row, PK extends keyof T> = {
@@ -81,14 +81,14 @@ export type MutateAPI<MD extends MutatorDefs> = {
 
 // --- queries ----------------------------------------------------------------
 
-export type QueryFn<Args, Ctx, T extends Row> = (c: { args: Args; ctx: Ctx }) => TypedQuery<T>;
+export type QueryFn<Args, Ctx, T extends Row> = (c: { args: Args; ctx: Ctx }) => QueryBuilder<T>;
 
 /** A custom query definition (its args + result row types are inferred). */
 // oxlint-disable-next-line no-explicit-any
-export type QueryDef<Args = any, T extends Row = Row> = (c: { args: Args; ctx: any }) => TypedQuery<T>;
+export type QueryDef<Args = any, T extends Row = Row> = (c: { args: Args; ctx: any }) => QueryBuilder<T>;
 
 /** Define a custom (named) query (mirrors Zero's `defineQuery`). */
-export function defineQuery<T extends Row>(fn: () => TypedQuery<T>): QueryDef<void, T>;
+export function defineQuery<T extends Row>(fn: () => QueryBuilder<T>): QueryDef<void, T>;
 export function defineQuery<Args, Ctx, T extends Row>(fn: QueryFn<Args, Ctx, T>): QueryDef<Args, T>;
 // oxlint-disable-next-line no-explicit-any
 export function defineQuery(fn: any): any {
@@ -97,7 +97,7 @@ export function defineQuery(fn: any): any {
 
 export type QueryDefs = Record<string, QueryDef>;
 export type QArgsOf<Q> = Q extends (c: { args: infer A; ctx: never }) => unknown ? A : never;
-export type QRowOf<Q> = Q extends (c: never) => TypedQuery<infer T> ? T : never;
+export type QRowOf<Q> = Q extends (c: never) => Subscribable<infer T> ? T : never;
 
 /** `orbit.queries` derived from query defs — call with args, get a `Subscribable`. */
 export type QueriesAPI<QD extends QueryDefs> = {

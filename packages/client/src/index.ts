@@ -1,7 +1,7 @@
 export { Orbit, View } from './client.ts';
 export type { OrbitOptions, TableMutator, QueryAccess, MutateAccess } from './client.ts';
-export { Query, TypedQuery, createBuilder } from './query.ts';
-export type { QueryHost, Subscribable, ViewLike } from './query.ts';
+export { Query, TypedQuery, SchemaQuery, createBuilder, buildSchemaQueries } from './query.ts';
+export type { QueryHost, Subscribable, QueryBuilder, ViewLike, SchemaQueries } from './query.ts';
 export { defineMutator, defineQuery, collectOps } from './custom.ts';
 export type {
   Transaction,
@@ -24,6 +24,7 @@ export type { ResultRow } from './eval.ts';
 export * from './ivm/index.ts';
 export {
   createSchema,
+  relationships,
   table,
   string,
   number,
@@ -40,5 +41,10 @@ export type {
   RowOf,
   PkOf,
   AnySchema,
+  Cardinality,
+  Connection,
+  Relationship,
+  RelationshipsDef,
+  RelationshipsMap,
 } from './schema.ts';
 export * from './protocol.ts';

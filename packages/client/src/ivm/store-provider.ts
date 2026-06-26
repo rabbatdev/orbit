@@ -72,8 +72,18 @@ export function nodeToRow(node: { row: Row; relationships: Record<string, { row:
   const out: Record<string, unknown> = { ...node.row };
   for (const rel of ast.related ?? []) {
     const alias = rel.subquery.alias ?? rel.subquery.table;
-    const children = (node.relationships[alias] ?? []).map((c) => nodeToRow(c as never, rel.subquery));
-    out[alias] = rel.singular ? children[0] : children;
+    if (rel.hidden) {
+      // Junction (many-to-many): drop the junction nodes and lift the nested
+      // destination nodes up under this alias (matches Zero's hidden junction).
+      const inner = rel.subquery.related![0];
+      const innerAlias = inner.subquery.alias ?? inner.subquery.table;
+      const junctionNodes = node.relationships[alias] ?? [];
+      const dest = junctionNodes.flatMap((jn) => (jn.relationships[innerAlias] as typeof junctionNodes ?? []).map((c) => nodeToRow(c as never, inner.subquery)));
+      out[alias] = inner.singular ? dest[0] : dest;
+    } else {
+      const children = (node.relationships[alias] ?? []).map((c) => nodeToRow(c as never, rel.subquery));
+      out[alias] = rel.singular ? children[0] : children;
+    }
   }
   for (const rel of existsRelationships(ast.where)) {
     const alias = rel.subquery.alias!;

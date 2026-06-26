@@ -3,17 +3,14 @@
 // which runs the mutators/queries with an authenticated `ctx` (the better-auth
 // anonymous user id).
 
-import {
-  createSchema,
-  createBuilder,
-  defineMutator,
-  defineQuery,
-  table,
-  string,
-  number,
-  type RowOf,
-  type Transaction,
-} from '@orbit/client';
+import { createBuilder, defineMutator, defineQuery, type Transaction } from '@orbit/client';
+// The Orbit schema + row types are GENERATED from the Drizzle schema in
+// db/schema.ts by `pnpm generate:schema` (the @orbit/drizzle CLI). Edit
+// db/schema.ts (and ../postgres/01-init.sql), then regenerate — not this file.
+import { schema, type Pixel, type Cursor } from './schema.gen.ts';
+
+export { schema };
+export type { Pixel, Cursor };
 
 /** The authenticated context the app server derives from the better-auth session. */
 export type Ctx = { userID: string };
@@ -24,39 +21,13 @@ export const CELL = 24; // px per cell on screen
 export const CHUNK = 16; // cells per chunk
 export const VIEW_RADIUS = 3; // chunks of pixels the query returns around the center
 
-// --- tables ------------------------------------------------------------------
-
-// One painted cell. `id` is "x:y" so a place is an upsert and an erase is a delete.
-const pixel = table('pixel')
-  .columns({ id: string(), x: number(), y: number(), color: string(), updated: number() })
-  .primaryKey('id');
-
-// Ephemeral presence: one row per connected user, keyed by user id. x/y are WORLD
-// coords (the cursor's position on the infinite canvas). A 2s heartbeat keeps it
-// fresh; clients hide rows older than the TTL and delete their own on unload.
-const cursor = table('cursor')
-  .columns({
-    id: string(),
-    x: number(),
-    y: number(),
-    color: string(),
-    size: number(),
-    erasing: number(),
-    updated: number(),
-  })
-  .primaryKey('id');
-
-export const schema = createSchema({ tables: [pixel, cursor] });
-export type Pixel = RowOf<typeof pixel>;
-export type Cursor = RowOf<typeof cursor>;
-
 const b = createBuilder(schema);
 
 // --- mutators ----------------------------------------------------------------
 
 export const mutators = {
   paint: defineMutator(
-    ({ tx, args }: { tx: Transaction<typeof schema>; args: { cells: { x: number; y: number; color: string }[] } }) => {
+    ({ tx, args }: { tx: Transaction<typeof schema>; args: { cells: { x: number; y: number; color: `#${string}` }[] } }) => {
       const now = Date.now();
       for (const c of args.cells) {
         tx.mutate.pixel.upsert({ id: `${c.x}:${c.y}`, x: c.x, y: c.y, color: c.color, updated: now });
@@ -75,7 +46,7 @@ export const mutators = {
       ctx,
     }: {
       tx: Transaction<typeof schema>;
-      args: { uid: string; x: number; y: number; color: string; size: number; erasing: number };
+      args: { uid: string; x: number; y: number; color: `#${string}`; size: number; erasing: 0 | 1 };
       ctx: Ctx;
     }) => {
       tx.mutate.cursor.upsert({

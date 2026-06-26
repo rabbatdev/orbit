@@ -1,0 +1,20 @@
+{
+  "name": "@orbit/orm-core",
+  "version": "0.1.0",
+  "description": "ORM-agnostic core for generating Orbit schemas: a normalized schema IR, an OrmAdapter contract, a runtime schema builder, and a TypeScript codegen emitter. ORM adapters (e.g. @orbit/drizzle) target this.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@orbit/client": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5.6"
+  }
+}

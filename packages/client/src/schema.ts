@@ -12,9 +12,12 @@ export type Column<T = unknown> = {
   readonly _type?: T;
 };
 
-export const string = (): Column<string> => ({ type: 'string', optional: false });
-export const number = (): Column<number> => ({ type: 'number', optional: false });
-export const boolean = (): Column<boolean> => ({ type: 'boolean', optional: false });
+// The optional type parameter lets generated schemas carry a column's *custom*
+// TypeScript type (e.g. `string<\`${string}@${string}\`>()`, `string<'a' | 'b'>()`
+// for enums, `number<1 | 2>()`), so a Drizzle `$type<>()` survives into orbit.
+export const string = <T extends string = string>(): Column<T> => ({ type: 'string', optional: false });
+export const number = <T extends number = number>(): Column<T> => ({ type: 'number', optional: false });
+export const boolean = <T extends boolean = boolean>(): Column<T> => ({ type: 'boolean', optional: false });
 export const json = <T = unknown>(): Column<T> => ({ type: 'json', optional: false });
 
 /** Mark a column nullable (its TS type gains `| null`). */
@@ -45,17 +48,123 @@ export function table<Name extends string>(name: Name) {
   };
 }
 
-export type SchemaDef<T extends Record<string, TableDef> = Record<string, TableDef>> = {
-  readonly tables: T;
+// --- relationships ----------------------------------------------------------
+// Schema-level relationships, mirroring Zero's `relationships(table, ({one, many})
+// => ...)`. A relationship is a chain of one or two `Connection`s: a single
+// connection is a direct (FK) relationship; two connections describe a
+// many-to-many through a junction table. Defining relationships once lets queries
+// reference them by name — `q.related('author')` — fully typed and with the
+// correlation resolved from the schema (no per-query correlation needed).
+
+export type Cardinality = 'one' | 'many';
+
+/** One hop of a relationship: which fields correlate and to which table. */
+export type Connection = {
+  readonly sourceField: readonly string[];
+  readonly destField: readonly string[];
+  /** Destination table *name*. */
+  readonly destSchema: string;
+  readonly cardinality: Cardinality;
 };
 
-/** Combine table defs into a schema keyed by table name. */
-export function createSchema<const T extends readonly TableDef[]>(def: {
+/** A relationship = a 1- (direct) or 2- (junction) element connection chain. */
+export type Relationship = readonly [Connection] | readonly [Connection, Connection];
+
+/** The relationships declared for one source table. */
+export type RelationshipsDef<
+  Name extends string = string,
+  R extends Record<string, Relationship> = Record<string, Relationship>,
+> = {
+  readonly name: Name;
+  readonly relationships: R;
+};
+
+/** A single hop's arguments, where `destSchema` is the destination *table def*. */
+type ConnectArg<Dest extends TableDef = TableDef> = {
+  readonly sourceField: readonly string[];
+  readonly destField: readonly string[];
+  readonly destSchema: Dest;
+};
+
+type Connector<Card extends Cardinality> = {
+  // direct
+  <Dest extends TableDef>(arg: ConnectArg<Dest>): readonly [Connection & { destSchema: Dest['name']; cardinality: Card }];
+  // junction (two hops)
+  <Junction extends TableDef, Dest extends TableDef>(
+    first: ConnectArg<Junction>,
+    second: ConnectArg<Dest>,
+  ): readonly [
+    Connection & { destSchema: Junction['name']; cardinality: Card },
+    Connection & { destSchema: Dest['name']; cardinality: Card },
+  ];
+};
+
+const makeConnector =
+  (cardinality: Cardinality) =>
+  (...args: ConnectArg[]): Connection[] =>
+    args.map((a) => ({
+      sourceField: a.sourceField,
+      destField: a.destField,
+      destSchema: a.destSchema.name,
+      cardinality,
+    }));
+
+/**
+ * Declare the relationships for `table` (mirrors Zero's `relationships`). Pass a
+ * callback that builds named relationships with `one(...)` / `many(...)`:
+ *
+ * ```ts
+ * relationships(issue, ({ one, many }) => ({
+ *   author: one({ sourceField: ['authorId'], destField: ['id'], destSchema: user }),
+ *   comments: many({ sourceField: ['id'], destField: ['issueId'], destSchema: comment }),
+ *   labels: many(
+ *     { sourceField: ['id'],      destField: ['issueId'], destSchema: issueLabel },
+ *     { sourceField: ['labelId'], destField: ['id'],      destSchema: label },
+ *   ),
+ * }));
+ * ```
+ */
+export function relationships<Name extends string, R extends Record<string, Relationship>>(
+  table: TableDef<Name>,
+  cb: (connectors: { one: Connector<'one'>; many: Connector<'many'> }) => R,
+): RelationshipsDef<Name, R> {
+  const r = cb({
+    one: makeConnector('one') as unknown as Connector<'one'>,
+    many: makeConnector('many') as unknown as Connector<'many'>,
+  });
+  return { name: table.name, relationships: r };
+}
+
+/** Relationships keyed by source-table name (the shape stored on a schema). */
+export type RelationshipsMap = Record<string, Record<string, Relationship>>;
+
+export type SchemaDef<
+  T extends Record<string, TableDef> = Record<string, TableDef>,
+  R extends RelationshipsMap = RelationshipsMap,
+> = {
+  readonly tables: T;
+  readonly relationships: R;
+};
+
+/** Combine table + relationship defs into a schema keyed by table name. */
+export function createSchema<
+  const T extends readonly TableDef[],
+  const R extends readonly RelationshipsDef[] = [],
+>(def: {
   tables: T;
-}): SchemaDef<{ [K in T[number] as K['name']]: K }> {
+  relationships?: R;
+}): SchemaDef<
+  { [K in T[number] as K['name']]: K },
+  { [K in R[number] as K['name']]: K['relationships'] }
+> {
   const tables = {} as Record<string, TableDef>;
   for (const t of def.tables) tables[t.name] = t;
-  return { tables } as SchemaDef<{ [K in T[number] as K['name']]: K }>;
+  const rels = {} as RelationshipsMap;
+  for (const r of def.relationships ?? []) rels[r.name] = r.relationships as Record<string, Relationship>;
+  return { tables, relationships: rels } as SchemaDef<
+    { [K in T[number] as K['name']]: K },
+    { [K in R[number] as K['name']]: K['relationships'] }
+  >;
 }
 
 // --- type inference ---------------------------------------------------------

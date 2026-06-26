@@ -1,0 +1,38 @@
+{
+  "name": "@orbit/drizzle",
+  "version": "0.1.0",
+  "description": "Generate Orbit schemas from Drizzle ORM schemas. Runtime `defineOrbitSchema()` + a `orbit-drizzle generate` CLI (preserves custom $type<>() types). Built on @orbit/orm-core; supports Drizzle relations() and defineRelations().",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./cli": "./src/cli/index.ts"
+  },
+  "bin": {
+    "orbit-drizzle": "./src/cli/bin.ts"
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types",
+    "typecheck": "tsc --noEmit",
+    "generate:example": "node --experimental-strip-types src/cli/bin.ts -c example/orbit-drizzle.config.ts"
+  },
+  "dependencies": {
+    "@orbit/client": "workspace:*",
+    "@orbit/orm-core": "workspace:*"
+  },
+  "peerDependencies": {
+    "drizzle-orm": ">=0.36.0",
+    "prettier": ">=3.0.0",
+    "ts-morph": ">=24.0.0"
+  },
+  "peerDependenciesMeta": {
+    "prettier": { "optional": true },
+    "ts-morph": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "commander": "^14.0.0",
+    "drizzle-orm": "1.0.0-rc.3",
+    "ts-morph": "^27.0.0",
+    "typescript": "^5.6"
+  }
+}

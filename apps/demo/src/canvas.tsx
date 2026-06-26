@@ -9,7 +9,7 @@ import { useQuery } from '@orbit/react';
 import { getOrbit, type Pixel, type Cursor } from './orbit.ts';
 import { CELL, CHUNK } from './shared.ts';
 
-const PALETTE = ['#171717', '#737373', '#cfcfcf', '#ef4444', '#f59e0b', '#facc15', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'];
+const PALETTE: `#${string}`[] = ['#171717', '#737373', '#cfcfcf', '#ef4444', '#f59e0b', '#facc15', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'];
 const SIZES = [1, 2, 3, 4];
 const IDENTITY = ['#f43f5e', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#eab308'];
 
@@ -117,7 +117,7 @@ export function Canvas({ me }: { me: { id: string } }) {
       if (todo.length) orbit.mutate.erase({ cells: todo });
     } else {
       const c = colorRef.current;
-      const todo: { x: number; y: number; color: string }[] = [];
+      const todo: { x: number; y: number; color: `#${string}` }[] = [];
       for (const p of cells) {
         const id = `${p.x}:${p.y}`;
         if (strokeRef.current.has(id) || pixelMapRef.current.get(id)?.c === c) continue;

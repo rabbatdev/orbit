@@ -164,6 +164,19 @@ export function existsRelationships(cond: Condition | undefined): CorrelatedSubq
 }
 
 /**
+ * Lift the destination rows out of a junction (`hidden`) relationship layer.
+ * `junctionRows` are the rows of the junction table (already carrying their
+ * nested destination rows under the inner alias); we concatenate those nested
+ * rows and drop the junction layer entirely — mirroring Zero's junction view.
+ */
+function liftHidden(junctionRows: ResultRow[], junctionAst: AST): ResultRow[] {
+  const inner = junctionAst.related?.[0];
+  if (!inner) return [];
+  const innerAlias = inner.subquery.alias ?? inner.subquery.table;
+  return junctionRows.flatMap((jr) => (jr[innerAlias] as ResultRow[]) ?? []);
+}
+
+/**
  * Evaluate `ast` against `getRows` (a function returning all current rows of a
  * table). Returns nested result rows. Set `applyWhere: false` for server-resolved
  * (named) queries whose `where` was already applied server-side.
@@ -217,7 +230,10 @@ export function evaluate(
       const out: ResultRow = { ...r };
       for (const rel of [...related, ...existsRels]) {
         const alias = rel.subquery.alias ?? rel.subquery.table;
-        out[alias] = run(rel.subquery, r, rel.correlation);
+        const children = run(rel.subquery, r, rel.correlation);
+        // A `hidden` relationship is a junction (many-to-many) layer: drop the
+        // junction rows and lift the nested destination rows up under this alias.
+        out[alias] = rel.hidden ? liftHidden(children, rel.subquery) : children;
       }
       return out;
     });
@@ -238,8 +254,16 @@ export function unwrapSingular(rows: ResultRow[], ast: AST): ResultRow[] {
     const out: ResultRow = { ...r };
     for (const rel of related) {
       const alias = rel.subquery.alias ?? rel.subquery.table;
-      const children = unwrapSingular((out[alias] as ResultRow[]) ?? [], rel.subquery);
-      out[alias] = rel.singular ? children[0] : children;
+      if (rel.hidden) {
+        // `out[alias]` was already flattened to destination rows by `liftHidden`;
+        // unwrap/recurse using the inner (destination) subquery + its cardinality.
+        const inner = rel.subquery.related![0];
+        const dest = unwrapSingular((out[alias] as ResultRow[]) ?? [], inner.subquery);
+        out[alias] = inner.singular ? dest[0] : dest;
+      } else {
+        const children = unwrapSingular((out[alias] as ResultRow[]) ?? [], rel.subquery);
+        out[alias] = rel.singular ? children[0] : children;
+      }
     }
     return out;
   });

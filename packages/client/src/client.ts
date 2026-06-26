@@ -21,7 +21,7 @@ import {
   type Row,
   type Upstream,
 } from './protocol.ts';
-import { Query, TypedQuery, type QueryHost } from './query.ts';
+import { Query, SchemaQuery, type SchemaQueries, type QueryHost } from './query.ts';
 import { type AnySchema, type PkOf, type RowOf, type SchemaDef } from './schema.ts';
 import {
   collectOps,
@@ -88,10 +88,8 @@ export type TableMutator<T extends Row = Row, PK extends keyof T = keyof T> = {
   delete(value: Pick<T, PK>): void;
 };
 
-/** `orbit.query.<table>` — one typed query per schema table. */
-export type QueryAccess<S extends SchemaDef> = {
-  [K in keyof S['tables']]: TypedQuery<RowOf<S['tables'][K]>>;
-};
+/** `orbit.query.<table>` — one schema-aware query per table (relationships by name). */
+export type QueryAccess<S extends SchemaDef> = SchemaQueries<S>;
 
 /** `orbit.mutate.<table>` — one typed mutator per schema table. */
 export type MutateAccess<S extends SchemaDef> = {
@@ -232,8 +230,9 @@ export class Orbit<
     }
     this.#store = new Store(this.#pkByTable);
 
+    const schemaForQueries = (this.#schema ?? { tables: {}, relationships: {} }) as S;
     this.query = new Proxy({}, {
-      get: (_t, table: string) => new TypedQuery(this, Query.from(table)),
+      get: (_t, table: string) => new SchemaQuery(this, schemaForQueries, table, Query.from(table)),
     }) as QueryAccess<S>;
 
     // Custom queries: `orbit.queries.<name>(args)` -> a typed Subscribable that
